@@ -1,6 +1,8 @@
 Husky SQL
 =========
 
+[![Build Status](https://travis-ci.org/TatianaJin/husky-sql.svg?branch=master)](https://travis-ci.org/TatianaJin/husky-sql)
+
 Dependencies
 -------------
 Husky SQL has the following minimal dependencies:
