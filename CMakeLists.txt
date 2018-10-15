@@ -13,7 +13,7 @@
 # limitations under the License.
 
 project(husky-sql)
-cmake_minimum_required(VERSION 3.10.1)
+cmake_minimum_required(VERSION 3.9.1)
 
 set(CMAKE_CXX_STANDARD 14)
 SET(CPACK_PACKAGE_VERSION_MAJOR "1")

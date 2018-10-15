@@ -50,6 +50,6 @@ script:
   - cd release
   - cmake .. -DCMAKE_BUILD_TYPE=release
   # Target list to check if succeed to compile.
-  - make -j4 HSQLUnitTest ExecuteQuery QueryPlan
+  - make -j4 ExecuteQuery QueryPlan
   # Run unit test.
-  - ./HSQLUnitTest --gtest_shuffle  # To check if the order causes some time-out failures.
+  - make tests
