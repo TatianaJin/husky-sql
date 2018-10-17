@@ -50,6 +50,6 @@ script:
   - cd release
   - cmake .. -DCMAKE_BUILD_TYPE=release
   # Target list to check if succeed to compile.
-  - make -j4 ExecuteQuery QueryPlan
+  - make -j4 ExecuteQuery QueryPlan HuskyQueryPlan
   # Run unit test.
   - make tests
