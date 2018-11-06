@@ -8,6 +8,6 @@ import java.util.Map;
 
 public class SimpleTestTableFactory implements TableFactory<SimpleTestTable> {
   public SimpleTestTable create(SchemaPlus schema, String name, Map<String, Object> operand, RelDataType rowType) {
-    return new SimpleTestTable();
+    return new SimpleTestTable("src/main/resources/table.json");
   }
 }

@@ -1,0 +1,43 @@
+{
+  "name": "Parts",
+  "type": "custom",
+  "url": "src/main/resources/test_table.txt",
+  "factory": "husky.sql.calcite.table.SimpleTestTableFactory",
+  "columns":[
+      {
+          "id": "1",
+          "name": "TRANS_ID",
+          "datatype": "int"
+      }, {
+          "id": "1",
+          "name": "ITEM_ID",
+          "datatype": "int"
+      }, {
+          "id": "2",
+          "name": "ITEM_COUNT",
+          "datatype": "int"
+      }, {
+          "id": "3",
+          "name": "PRICE",
+          "datatype": "float"
+      }, {
+          "id": "4",
+          "name": "SELLER_ID",
+          "datatype": "int"
+      }, {
+          "id": "5",
+          "name": "SELLER_NAME",
+          "datatype": "varchar",
+          "length": "10"
+      }, {
+          "id": "6",
+          "name": "BUYER_ID",
+          "datatype": "int"
+      }, {
+          "id": "7",
+          "name": "BUYER_NAME",
+          "datatype": "varchar",
+          "length": "10"
+      }
+  ]
+}
