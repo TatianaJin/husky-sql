@@ -8,7 +8,10 @@
         {
           "name": "Parts",
           "type": "custom",
-          "factory": "husky.sql.calcite.table.SimpleTestTableFactory"
+          "factory": "husky.sql.calcite.table.SimpleTestTableFactory",
+          "operand": {
+              "url": "src/main/resources/table.json"
+          }
         }
       ]
     }

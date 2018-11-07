@@ -8,6 +8,7 @@ import java.util.Map;
 
 public class SimpleTestTableFactory implements TableFactory<SimpleTestTable> {
   public SimpleTestTable create(SchemaPlus schema, String name, Map<String, Object> operand, RelDataType rowType) {
-    return new SimpleTestTable("src/main/resources/table.json");
+    String tableJsonPath = (String) operand.get("url");
+    return new SimpleTestTable(tableJsonPath);
   }
 }
