@@ -1,0 +1,20 @@
+{
+  "url": "hdfs:///user/tati/lineitem_parquet/000022_0",
+  "columns": [
+    {"id": "0","datatype": "INT64"},
+    {"id": "1","datatype": "INT64"},
+    {"id": "2","datatype": "INT64"},
+    {"id": "3","datatype": "INT32"},
+    {"id": "4","datatype": "DOUBLE"},
+    {"id": "5","datatype": "DOUBLE"},
+    {"id": "6","datatype": "DOUBLE"},
+    {"id": "7","datatype": "DOUBLE"},
+    {"id": "8","datatype": "BYTE_ARRAY"},
+    {"id": "9","datatype": "BYTE_ARRAY"},
+    {"id": "10","datatype": "BYTE_ARRAY"},
+    {"id": "11","datatype": "BYTE_ARRAY"},
+    {"id": "12","datatype": "BYTE_ARRAY"},
+    {"id": "13","datatype": "BYTE_ARRAY"},
+    {"id": "14","datatype": "BYTE_ARRAY"},
+    {"id": "15","datatype": "BYTE_ARRAY"}]
+}
