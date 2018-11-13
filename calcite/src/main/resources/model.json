@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "defaultSchema": "CUSTOM_TABLE",
+  "schemas": [
+    {
+      "name": "CUSTOM_TABLE",
+      "tables": [
+        {
+          "name": "PARQUET_22",
+          "type": "custom",
+          "factory": "husky.sql.calcite.table.SimpleParquetTableFactory",
+          "operand": {
+            "file": "src/main/resources/table.json"
+          }
+        }
+      ]
+    }
+  ]
+}
