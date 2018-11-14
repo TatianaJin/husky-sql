@@ -11,6 +11,7 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 public class SimpleTestTable extends AbstractTable implements ScannableTable {
+  public String url = "hdfs:///test/path";
   private final Object[][] rows = {
       {1, "ao", 10},
       {2, "aka", 5},
