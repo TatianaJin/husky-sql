@@ -5,7 +5,7 @@
   "factory": "husky.sql.calcite.table.SimpleTestTableFactory",
   "columns":[
       {
-          "id": "1",
+          "id": "0",
           "name": "TRANS_ID",
           "datatype": "int"
       }, {
