@@ -101,6 +101,7 @@ public class HuskyRuleSets {
 //            PushProjectIntoTableSourceScanRule.INSTANCE,
 //            PushFilterIntoTableSourceScanRule.INSTANCE,
            PushProjectIntoTableScanRule.INSTANCE,
+           PushFilterIntoTableScanRule.INSTANCE,
 
             // unnest rule
 //            LogicalUnnestRule.INSTANCE,

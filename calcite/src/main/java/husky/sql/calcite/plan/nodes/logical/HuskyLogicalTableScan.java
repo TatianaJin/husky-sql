@@ -14,19 +14,24 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class HuskyLogicalTableScan extends TableScan implements HuskyLogicalRel {
     public int[] fields;
+    public RexNode condition;
+    private boolean isFilterPushDown;
 
     public HuskyLogicalTableScan(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table, int[] selectedFields) {
         super(cluster, traitSet, table);
-        fields = Arrays.copyOf(selectedFields, selectedFields.length);
-        // fields = new int[]{0, 1, 3, 4, 5};
+        this.fields = Arrays.copyOf(selectedFields, selectedFields.length);
+        this.isFilterPushDown = false;
     }
 
     @Override
@@ -36,9 +41,17 @@ public class HuskyLogicalTableScan extends TableScan implements HuskyLogicalRel 
         for(int i = 0; i < fields.length; i++) {
             selectedFieldList.add(allFieldList.get(fields[i]) + "=[$" + fields[i] + "]");
         }
-        return super.explainTerms(pw)
-            .item("fields", selectedFieldList.stream().collect(Collectors.joining(", ")));
-            
+
+        if(this.isFilterPushDown) {
+            // pw.item("fields", selectedFieldList.stream().collect(Collectors.joining(", ")));
+            // pw.item("condition", condition);
+            return super.explainTerms(pw)
+                        .item("fields", selectedFieldList.stream().collect(Collectors.joining(", ")))
+                        .item("condition", condition);
+        } else {
+            return super.explainTerms(pw)
+                    .item("fields", selectedFieldList.stream().collect(Collectors.joining(", ")));
+        }   
     }
 
     @Override
@@ -72,16 +85,48 @@ public class HuskyLogicalTableScan extends TableScan implements HuskyLogicalRel 
         //
         // For example, if table has 3 fields, project has 1 field,
         // then factor = (1 + 2) / (3 + 2) = 0.6
-        Double rowCnt = mq.getRowCount(this);
-        planner.getCostFactory().makeCost(rowCnt, rowCnt, rowCnt * estimateRowSize(getRowType()));
-        return super.computeSelfCost(planner, mq)
-            .multiplyBy(((double) fields.length + 2D)
-            / ((double) table.getRowType().getFieldCount() + 2D));
+        double rowCnt = mq.getRowCount(this);
+        if(this.fields.length != 0) {
+            if(isFilterPushDown) {
+                // with project and filter
+                double selectivity = RelMdUtil.guessSelectivity(condition, false);
+                double newRowCnt = Math.max(rowCnt * selectivity, 1.0);
+                planner.getCostFactory().makeCost(newRowCnt, newRowCnt, newRowCnt * estimateRowSize(getRowType()));
+                return super.computeSelfCost(planner, mq).multiplyBy(((double) fields.length + 2D)
+                    / ((double) table.getRowType().getFieldCount() + 2D));
+            } else {
+                // with project but no filter
+                planner.getCostFactory().makeCost(rowCnt, rowCnt, rowCnt * estimateRowSize(getRowType()));
+                return super.computeSelfCost(planner, mq).multiplyBy(((double) fields.length + 2D)
+                    / ((double) table.getRowType().getFieldCount() + 2D));
+            }
+        } else {
+            if(isFilterPushDown) {
+                // with filter and project all fields
+                double selectivity = RelMdUtil.guessSelectivity(condition, false);
+                double newRowCnt = Math.max(rowCnt * selectivity, 1.0);
+                planner.getCostFactory().makeCost(newRowCnt, newRowCnt, newRowCnt * estimateRowSize(getRowType()));
+                return super.computeSelfCost(planner, mq);
+            } else {
+                // project all fields and no filter
+                planner.getCostFactory().makeCost(rowCnt, rowCnt, rowCnt * estimateRowSize(getRowType()));
+                return super.computeSelfCost(planner, mq);
+            }
+        }
     }
 
     // @Override
     public HuskyLogicalTableScan copy(RelTraitSet traitSet, int[] selectedFields) {
         // assert inputs.isEmpty();
         return new HuskyLogicalTableScan(getCluster(), getTraitSet(), getTable(), selectedFields);
+    }
+
+    public void applyPredicate(RexNode condition) {
+        this.condition = condition;
+        this.isFilterPushDown = true;
+    }
+
+    public boolean isFilterPushDown() {
+        return this.isFilterPushDown;
     }
 }

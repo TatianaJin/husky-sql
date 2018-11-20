@@ -14,6 +14,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class PushProjectIntoTableScanRule extends RelOptRule {
     public static final PushProjectIntoTableScanRule INSTANCE =
