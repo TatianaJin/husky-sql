@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SALES",
+  "schemas": [
+    {
+      "name": "SALES",
+      "tables": [
+        {
+          "name": "Parts",
+          "type": "custom",
+          "factory": "husky.sql.calcite.table.SimpleTestTableFactory",
+          "operand": {
+              "url": "src/main/resources/table.json"
+          }
+        }
+      ]
+    }
+  ]
+}

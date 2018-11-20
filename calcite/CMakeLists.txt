@@ -25,8 +25,8 @@ add_test( NAME java_test COMMAND mvn -Pcmake -Dbuild.dir=${CMAKE_CURRENT_BINARY_
 install( FILES ${HuskySQL_JARS} DESTINATION share)
 
 # Executables
-add_custom_target(QueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.SimpleQueryPlanner" -Dexec.args=\"\'select units,color from Parts\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})
-add_custom_target(ExecuteQuery ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.Execute" -Dexec.args=\"\'select units,color from Parts\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})
+add_custom_target(QueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.SimpleQueryPlanner" -Dexec.args=\"\'select TRANS_ID,ITEM_ID,PRICE from Parts\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})
+add_custom_target(ExecuteQuery ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.Execute" -Dexec.args=\"\'select TRANS_ID,ITEM_ID,PRICE,SELLER_NAME,BUYER_NAME from Parts\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})
 
 # Executables
-add_custom_target(HuskyQueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.HuskyQueryPlanner" -Dexec.args=\"\'select units,color from Parts\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})
+add_custom_target(HuskyQueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.HuskyQueryPlanner" -Dexec.args=\"\'select TRANS_ID,ITEM_ID,PRICE,SELLER_ID,SELLER_NAME from Parts where PRICE > 2.0 and ITEM_ID = 2 or SELLER_ID = 4\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})

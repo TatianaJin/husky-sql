@@ -69,7 +69,7 @@ public class SimpleQueryPlanner {
     info.setProperty("lex", "JAVA");
     CalciteConnection connection = DriverManager.getConnection("jdbc:calcite:", info)
                                                 .unwrap(CalciteConnection.class);
-    String schema = Resources.toString(SimpleQueryPlanner.class.getResource("/test_model.json"),
+    String schema = Resources.toString(SimpleQueryPlanner.class.getResource("/model.json"),
                                        Charset.defaultCharset());
     // ModelHandler reads the schema and load the schema to connection's root schema and sets the default schema
     new ModelHandler(connection, "inline:" + schema);

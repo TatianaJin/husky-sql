@@ -2,6 +2,7 @@ package husky.sql.calcite.plan.rules;
 
 import husky.sql.calcite.plan.logical.EnumerableToLogicalTableScan;
 import husky.sql.calcite.plan.nodes.logical.converter.*;
+import husky.sql.calcite.plan.rules.logical.*;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.tools.RuleSet;
@@ -99,6 +100,8 @@ public class HuskyRuleSets {
             // scan optimization
 //            PushProjectIntoTableSourceScanRule.INSTANCE,
 //            PushFilterIntoTableSourceScanRule.INSTANCE,
+           PushProjectIntoTableScanRule.INSTANCE,
+           PushFilterIntoTableScanRule.INSTANCE,
 
             // unnest rule
 //            LogicalUnnestRule.INSTANCE,
@@ -117,7 +120,8 @@ public class HuskyRuleSets {
 //            HuskyLogicalValues.CONVERTER,
 //            HuskyLogicalTableSourceScanConverter.INSTANCE,
 //            HuskyLogicalTableFunctionScan.CONVERTER,
-            HuskyLogicalNativeTableScanConverter.INSTANCE
+            HuskyLogicalNativeTableScanConverter.INSTANCE,
+            HuskyLogicalTableScanConverter.INSTANCE
     );
 
     /**
