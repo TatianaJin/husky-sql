@@ -1,0 +1,37 @@
+{
+	"name": "Test_Parts",
+	"url": "src/main/resources/test.txt",
+	"factory": "husky.sql.calcite.table.SimplePartsTableFactory",
+	"columns":[
+		{
+			"id": "0", 
+			"datatype": "int",
+			"name": "col0"
+		}, 
+
+		{
+			"id": "1",
+			"datatype": "double",
+			"name": "col1"
+		},
+
+		{
+			"id": "2",
+			"datatype": "float",
+			"name": "col2"
+		},
+
+		{
+			"id": "3",
+			"datatype": "varchar",
+			"name": "col3"
+		},
+
+		{
+			"id": "4",
+			"datatype": "bigint",
+			"name": "col4"
+		}
+
+	]
+}

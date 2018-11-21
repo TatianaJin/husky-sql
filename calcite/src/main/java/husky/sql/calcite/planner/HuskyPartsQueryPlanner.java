@@ -3,6 +3,9 @@ package husky.sql.calcite.planner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 
+
+import husky.sql.calcite.table.SimplePartsTable;
+import husky.sql.calcite.table.SimplePartsTableFactory;
 import husky.sql.calcite.Exceptions.TableException;
 import husky.sql.calcite.plan.nodes.HuskyConventions;
 import husky.sql.calcite.plan.rules.HuskyRuleSets;
@@ -24,6 +27,8 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.*;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -32,13 +37,15 @@ import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.io.FileWriter;
 
 import static org.apache.calcite.plan.Contexts.EMPTY_CONTEXT;
 
-public class HuskyQueryPlanner {
+public class HuskyPartsQueryPlanner{
 
     private final FrameworkConfig config;
-    
+
+
     public static void main(String[] args) throws IOException, SQLException, ValidationException, RelConversionException {
         if (args.length < 2) {
             System.out.println("usage: ./HuskyQueryPlanner \" JSON File \" \"<query string>\"");
@@ -53,15 +60,23 @@ public class HuskyQueryPlanner {
         new ModelHandler(connection, "inline:" + schema);
 
         // Create the query planner with the toy schema
-        HuskyQueryPlanner queryPlanner = new HuskyQueryPlanner(connection.getRootSchema()
+        HuskyPartsQueryPlanner queryPlanner = new HuskyPartsQueryPlanner(connection.getRootSchema()
                 .getSubSchema(connection.getSchema()));
         RelRoot root = queryPlanner.getLogicalPlan(args[1]);
         System.out.println("Initial logical plan: ");
         System.out.println(RelOptUtil.toString(root.rel));
-        System.out.println(RelOptUtil.toString(queryPlanner.getPhysicalPlan(root)));
+        RelNode logicalPlan = queryPlanner.getPhysicalPlan(root, connection);
+        System.out.println(RelOptUtil.toString(logicalPlan));
+
+        queryPlanner.generateJSON(logicalPlan, connection);
     }
 
-    protected HuskyQueryPlanner(SchemaPlus schema) {
+
+
+
+
+    private HuskyPartsQueryPlanner(SchemaPlus schema) {
+
         config = Frameworks.newConfigBuilder()
                 // Lexical configuration defines how identifiers are quoted, whether they are converted to upper or lower
                 // case when they are read, and whether identifiers are matched case-sensitively.
@@ -74,16 +89,25 @@ public class HuskyQueryPlanner {
                         RuleSets.ofList()) // Rule sets to use in transformation phases
                 .typeSystem(RelDataTypeSystem.DEFAULT)
                 .build();
+
+
     }
 
+
     /**
-     * run HEP planner
+     *
+     * @param hepMatchOrder
+     * @param ruleSet
+     * @param input
+     * @param targetTraits
+     * @return
      */
     protected RelNode runHepPlanner(
             HepMatchOrder hepMatchOrder,
             RuleSet ruleSet,
             RelNode input,
             RelTraitSet targetTraits) {
+
         HepProgramBuilder builder = new HepProgramBuilder();
         builder.addMatchOrder(hepMatchOrder);
 
@@ -98,8 +122,19 @@ public class HuskyQueryPlanner {
             planner.changeTraits(input, targetTraits.simplify());
         }
         return planner.findBestExp();
+
+
     }
 
+
+    /**
+     *
+     * @param volcanoPlanner
+     * @param ruleSet
+     * @param input
+     * @param targetTraits
+     * @return
+     */
     protected RelNode runVolcanoPlanner(
             RelOptPlanner volcanoPlanner,
             RuleSet ruleSet,
@@ -132,6 +167,13 @@ public class HuskyQueryPlanner {
     }
 
 
+    /**
+     *
+     * @param query
+     * @return
+     * @throws ValidationException
+     * @throws RelConversionException
+     */
     private RelRoot getLogicalPlan(String query) throws ValidationException, RelConversionException {
         SqlNode sqlNode;
         Planner planner = Frameworks.getPlanner(config);
@@ -146,7 +188,14 @@ public class HuskyQueryPlanner {
         return planner.rel(validatedSqlNode);
     }
 
-    private RelNode getPhysicalPlan(RelRoot root) {
+
+    /**
+     *
+     * @param root
+     * @param connection
+     * @return
+     */
+    private RelNode getPhysicalPlan(RelRoot root, CalciteConnection connection) {
         RelNode originalPlan = root.rel;
         RelOptPlanner volcanoPlanner = root.rel.getCluster().getPlanner();
 
@@ -211,43 +260,86 @@ public class HuskyQueryPlanner {
 
         System.out.println("\nAfter step 3, optimize the logical Husky plan: ");
         System.out.println(RelOptUtil.toString(logicalPlan) + "\n");
+        return logicalPlan;
+    }
 
 
 
+    private void generateJSON(RelNode logicalPlan, CalciteConnection connection){
+        try {
+            JSONObject jobj = new JSONObject();
 
 
-        /* !!!!!!!!!test part!!!!!!!!!!!// */
-        System.out.println("CorrelVariable: "+logicalPlan.getCorrelVariable());
+            System.out.println("CorrelVariable: " + logicalPlan.getCorrelVariable());
 
-        List<String> names = logicalPlan.getRowType().getFieldNames();
+            List<String> field_names = logicalPlan.getRowType().getFieldNames();
 
-        System.out.println("\nThe field names are: ");
-        for(String name: names){
-            System.out.println(name);
-        }
+            System.out.println("\nThe field names are: ");
+            JSONArray jarray = new JSONArray();
 
+            for (String field_name : field_names) {
+                System.out.println(field_name);
+                jarray.add(field_name);
+            }
 
+            jobj.put("Selected Column", jarray);
 
+        /*
         System.out.println("\nRows: ");
         System.out.println(Double.toString(logicalPlan.getRows()));
+        */
 
+        /*
         System.out.println("\nTypenames: ");
         System.out.println(logicalPlan.getRelTypeName());
+        */
+
+            RelOptTable logical_table = logicalPlan.getInput(0).getTable();
+
+            if (logical_table == null) {
+                System.out.println("The table is not accessible");
+                return;
+            }
+            jobj.put("Recordtype", logical_table.getRowType().toString());
+
+            System.out.println("\nHusky Record type: ");
+
+            System.out.println(logical_table.getRowType().toString());
+
+
+            String schema = connection.getSchema();
+
+            System.out.println("\nSchema: ");
+            System.out.println(schema);
+
+            jobj.put("SCHEMA", schema);
+
+            List<String> names =  logical_table.getQualifiedName();
+
+            SimplePartsTable table = (SimplePartsTable) connection.getRootSchema().getSubSchema(names.get(0)).getTable(names.get(1));
+
+            String URL = table.getUrl();
+
+            jobj.put("URL", URL);
+
+            for(String name: names){
+                System.out.println(name);
+            }
+
+            try{
+                FileWriter JSONFile = new FileWriter("src/main/resources/target.json");
+                JSONFile.write(jobj.toString());
+                JSONFile.flush();
+            }catch (Exception e){
+                System.out.println("[Error]: fail in creating json file");
+            }
 
 
 
-        RelOptTable table = logicalPlan.getInput(0).getTable();
+            System.out.println(" ");
 
-        if(table == null){
-            System.out.println("The table is not accessible");
-            return logicalPlan;
+        } catch (Exception e){
+            System.out.println("[Error]: It fails in getPhysicalPlan");
         }
-
-        System.out.println("\nHusky Record type: ");
-        System.out.println(table.getRowType().toString());
-
-
-        System.out.println(" ");
-        return logicalPlan;
     }
 }
