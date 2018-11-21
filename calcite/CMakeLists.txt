@@ -33,4 +33,4 @@ add_custom_target(HuskyQueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.c
 
 
 #Executables
-add_custom_target(HuskyPartsQueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.HuskyPartsQueryPlanner" -Dexec.args=\"\'select col0, col1, col2 from Test_Parts \''" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS {HuskySQL_JARS})
+add_custom_target(HuskyPartsQueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.HuskyPartsQueryPlanner" -Dexec.args=\"\'/model.json\' \'select col0,col1 from Test_Parts where col3 > 0\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})

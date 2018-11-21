@@ -63,13 +63,13 @@ public class SimpleQueryPlanner {
 
   public static void main(String[] args) throws IOException, SQLException, ValidationException, RelConversionException {
     if (args.length < 1) {
-      System.out.println("usage: ./SimpleQueryPlanner \"<query string>\"");
+      System.out.println("usage: ./HuskyQueryPlanner \" JSON File \" \"<query string>\"");
     }
     Properties info = new Properties();
     info.setProperty("lex", "JAVA");
     CalciteConnection connection = DriverManager.getConnection("jdbc:calcite:", info)
                                                 .unwrap(CalciteConnection.class);
-    String schema = Resources.toString(SimpleQueryPlanner.class.getResource("/model.json"),
+    String schema = Resources.toString(SimpleQueryPlanner.class.getResource(args[0]),
                                        Charset.defaultCharset());
 
     //print the schema
@@ -80,7 +80,7 @@ public class SimpleQueryPlanner {
     // Create the query planner with the toy schema
     SimpleQueryPlanner queryPlanner = new SimpleQueryPlanner(connection.getRootSchema()
                                                                        .getSubSchema(connection.getSchema()));
-    RelRoot root = queryPlanner.getLogicalPlan(args[0]);
+    RelRoot root = queryPlanner.getLogicalPlan(args[1]);
     System.out.println("Initial logical plan: ");
     System.out.println(RelOptUtil.toString(root.rel));
     System.out.println("Optimized physical plan: ");

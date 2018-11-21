@@ -41,19 +41,20 @@ import java.io.FileWriter;
 
 import static org.apache.calcite.plan.Contexts.EMPTY_CONTEXT;
 
-public class HuskyPartsQueryPlanner {
+public class HuskyPartsQueryPlanner{
 
     private final FrameworkConfig config;
 
+
     public static void main(String[] args) throws IOException, SQLException, ValidationException, RelConversionException {
-        if (args.length < 1) {
-            System.out.println("usage: ./HuskyQueryPlanner \"<query string>\"");
+        if (args.length < 2) {
+            System.out.println("usage: ./HuskyQueryPlanner \" JSON File \" \"<query string>\"");
         }
         Properties info = new Properties();
         info.setProperty("lex", "JAVA");
         CalciteConnection connection = DriverManager.getConnection("jdbc:calcite:", info)
                 .unwrap(CalciteConnection.class);
-        String schema = Resources.toString(SimpleQueryPlanner.class.getResource("/model.json"),
+        String schema = Resources.toString(SimpleQueryPlanner.class.getResource(args[0]),
                 Charset.defaultCharset());
         // ModelHandler reads the schema and load the schema to connection's root schema and sets the default schema
         new ModelHandler(connection, "inline:" + schema);
@@ -61,7 +62,7 @@ public class HuskyPartsQueryPlanner {
         // Create the query planner with the toy schema
         HuskyPartsQueryPlanner queryPlanner = new HuskyPartsQueryPlanner(connection.getRootSchema()
                 .getSubSchema(connection.getSchema()));
-        RelRoot root = queryPlanner.getLogicalPlan(args[0]);
+        RelRoot root = queryPlanner.getLogicalPlan(args[1]);
         System.out.println("Initial logical plan: ");
         System.out.println(RelOptUtil.toString(root.rel));
         RelNode logicalPlan = queryPlanner.getPhysicalPlan(root, connection);
@@ -72,7 +73,10 @@ public class HuskyPartsQueryPlanner {
 
 
 
+
+
     private HuskyPartsQueryPlanner(SchemaPlus schema) {
+
         config = Frameworks.newConfigBuilder()
                 // Lexical configuration defines how identifiers are quoted, whether they are converted to upper or lower
                 // case when they are read, and whether identifiers are matched case-sensitively.
@@ -85,21 +89,25 @@ public class HuskyPartsQueryPlanner {
                         RuleSets.ofList()) // Rule sets to use in transformation phases
                 .typeSystem(RelDataTypeSystem.DEFAULT)
                 .build();
+
+
     }
 
 
     /**
-     * run HEP planner
+     *
      * @param hepMatchOrder
      * @param ruleSet
      * @param input
      * @param targetTraits
+     * @return
      */
     protected RelNode runHepPlanner(
             HepMatchOrder hepMatchOrder,
             RuleSet ruleSet,
             RelNode input,
             RelTraitSet targetTraits) {
+
         HepProgramBuilder builder = new HepProgramBuilder();
         builder.addMatchOrder(hepMatchOrder);
 
@@ -114,6 +122,8 @@ public class HuskyPartsQueryPlanner {
             planner.changeTraits(input, targetTraits.simplify());
         }
         return planner.findBestExp();
+
+
     }
 
 
@@ -157,7 +167,13 @@ public class HuskyPartsQueryPlanner {
     }
 
 
-
+    /**
+     *
+     * @param query
+     * @return
+     * @throws ValidationException
+     * @throws RelConversionException
+     */
     private RelRoot getLogicalPlan(String query) throws ValidationException, RelConversionException {
         SqlNode sqlNode;
         Planner planner = Frameworks.getPlanner(config);
@@ -173,7 +189,12 @@ public class HuskyPartsQueryPlanner {
     }
 
 
-
+    /**
+     *
+     * @param root
+     * @param connection
+     * @return
+     */
     private RelNode getPhysicalPlan(RelRoot root, CalciteConnection connection) {
         RelNode originalPlan = root.rel;
         RelOptPlanner volcanoPlanner = root.rel.getCluster().getPlanner();
@@ -239,17 +260,6 @@ public class HuskyPartsQueryPlanner {
 
         System.out.println("\nAfter step 3, optimize the logical Husky plan: ");
         System.out.println(RelOptUtil.toString(logicalPlan) + "\n");
-
-
-
-
-        /* !!!!!!!!!test part!!!!!!!!!!!// */
-
-
-
-
-
-
         return logicalPlan;
     }
 

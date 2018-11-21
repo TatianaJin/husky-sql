@@ -40,14 +40,14 @@ public class HuskyQueryPlanner {
     private final FrameworkConfig config;
     
     public static void main(String[] args) throws IOException, SQLException, ValidationException, RelConversionException {
-        if (args.length < 1) {
-            System.out.println("usage: ./HuskyQueryPlanner \"<query string>\"");
+        if (args.length < 2) {
+            System.out.println("usage: ./HuskyQueryPlanner \" JSON File \" \"<query string>\"");
         }
         Properties info = new Properties();
         info.setProperty("lex", "JAVA");
         CalciteConnection connection = DriverManager.getConnection("jdbc:calcite:", info)
                 .unwrap(CalciteConnection.class);
-        String schema = Resources.toString(SimpleQueryPlanner.class.getResource("/model.json"),
+        String schema = Resources.toString(SimpleQueryPlanner.class.getResource(args[0]),
                 Charset.defaultCharset());
         // ModelHandler reads the schema and load the schema to connection's root schema and sets the default schema
         new ModelHandler(connection, "inline:" + schema);
@@ -55,13 +55,13 @@ public class HuskyQueryPlanner {
         // Create the query planner with the toy schema
         HuskyQueryPlanner queryPlanner = new HuskyQueryPlanner(connection.getRootSchema()
                 .getSubSchema(connection.getSchema()));
-        RelRoot root = queryPlanner.getLogicalPlan(args[0]);
+        RelRoot root = queryPlanner.getLogicalPlan(args[1]);
         System.out.println("Initial logical plan: ");
         System.out.println(RelOptUtil.toString(root.rel));
         System.out.println(RelOptUtil.toString(queryPlanner.getPhysicalPlan(root)));
     }
 
-    private HuskyQueryPlanner(SchemaPlus schema) {
+    protected HuskyQueryPlanner(SchemaPlus schema) {
         config = Frameworks.newConfigBuilder()
                 // Lexical configuration defines how identifiers are quoted, whether they are converted to upper or lower
                 // case when they are read, and whether identifiers are matched case-sensitively.
@@ -245,11 +245,6 @@ public class HuskyQueryPlanner {
 
         System.out.println("\nHusky Record type: ");
         System.out.println(table.getRowType().toString());
-
-
-
-
-
 
 
         System.out.println(" ");
