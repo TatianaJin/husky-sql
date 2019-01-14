@@ -30,3 +30,6 @@ add_custom_target(ExecuteQuery ALL mvn exec:java -Dexec.mainClass="husky.sql.cal
 
 # Executables
 add_custom_target(HuskyQueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.HuskyQueryPlanner" -Dexec.args=\"\'select units,color from Parts\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})
+
+# Executables for ORC part
+add_custom_target(HuskyORCQueryPlan ALL mvn exec:java -Dexec.mainClass="husky.sql.calcite.planner.Husky_ORC_QueryPlanner" -Dexec.args=\"\'select l_orderkey, l_partkey, l_superkey from testORC where l_tax = 122 AND (l_quantity < 100 AND l_quantity > 50)\'\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${HuskySQL_JARS})
