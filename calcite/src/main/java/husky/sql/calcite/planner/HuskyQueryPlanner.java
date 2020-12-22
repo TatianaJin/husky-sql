@@ -5,7 +5,10 @@ import com.google.common.io.Resources;
 
 import husky.sql.calcite.Exceptions.TableException;
 import husky.sql.calcite.plan.nodes.HuskyConventions;
+import husky.sql.calcite.plan.nodes.logical.HuskyLogicalCalc;
 import husky.sql.calcite.plan.rules.HuskyRuleSets;
+import husky.sql.calcite.table.SimpleTestTable;
+
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.model.ModelHandler;
@@ -17,8 +20,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -30,47 +36,68 @@ import java.nio.charset.Charset;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import static org.apache.calcite.plan.Contexts.EMPTY_CONTEXT;
 
 public class HuskyQueryPlanner {
-
     private final FrameworkConfig config;
-    
-    public static void main(String[] args) throws IOException, SQLException, ValidationException, RelConversionException {
+
+    public static void main(String[] args)
+        throws IOException, SQLException, ValidationException, RelConversionException {
         if (args.length < 1) {
             System.out.println("usage: ./HuskyQueryPlanner \"<query string>\"");
         }
         Properties info = new Properties();
         info.setProperty("lex", "JAVA");
-        CalciteConnection connection = DriverManager.getConnection("jdbc:calcite:", info)
-                .unwrap(CalciteConnection.class);
-        String schema = Resources.toString(SimpleQueryPlanner.class.getResource("/test_model.json"),
-                Charset.defaultCharset());
+        CalciteConnection connection =
+            DriverManager.getConnection("jdbc:calcite:", info).unwrap(CalciteConnection.class);
+        String schema =
+            Resources.toString(SimpleQueryPlanner.class.getResource("/test_model.json"), Charset.defaultCharset());
         // ModelHandler reads the schema and load the schema to connection's root schema and sets the default schema
         new ModelHandler(connection, "inline:" + schema);
 
         // Create the query planner with the toy schema
-        HuskyQueryPlanner queryPlanner = new HuskyQueryPlanner(connection.getRootSchema()
-                .getSubSchema(connection.getSchema()));
+        HuskyQueryPlanner queryPlanner =
+            new HuskyQueryPlanner(connection.getRootSchema().getSubSchema(connection.getSchema()));
         RelRoot root = queryPlanner.getLogicalPlan(args[0]);
         System.out.println("Initial logical plan: ");
         System.out.println(RelOptUtil.toString(root.rel));
-        System.out.println(RelOptUtil.toString(queryPlanner.getPhysicalPlan(root)));
+        RelNode logicalPlan = queryPlanner.getPhysicalPlan(root);
+        System.out.println(RelOptUtil.toString(logicalPlan));
+
+        RelNode plan = logicalPlan;
+        if (logicalPlan instanceof HuskyLogicalCalc) {
+            HuskyLogicalCalc calc = (HuskyLogicalCalc) logicalPlan;
+            System.out.println(calc.getProgram().getCondition().getName());
+            for (RexNode node : calc.getProgram().getExprList())
+            System.out.println(node.toString());
+        }
+        while (!(plan instanceof TableScan)) {
+            plan = plan.getInput(0);
+        }
+        List<String> names = plan.getTable().getQualifiedName();
+        for(String name : names) {
+            System.out.println("qulified name " + name);
+        }
+
+        Table table = connection.getRootSchema().getSubSchema(names.get(0)).getTable(names.get(1));
+        if (table instanceof SimpleTestTable) {
+            System.out.println("My table loading path is " + ((SimpleTestTable)table).url);
+        }
     }
 
     private HuskyQueryPlanner(SchemaPlus schema) {
-        config = Frameworks.newConfigBuilder()
-                // Lexical configuration defines how identifiers are quoted, whether they are converted to upper or lower
-                // case when they are read, and whether identifiers are matched case-sensitively.
-                .parserConfig(
-                        SqlParser.configBuilder().setLex(Lex.MYSQL).build())
+        config =
+            Frameworks
+                .newConfigBuilder()
+                // Lexical configuration defines how identifiers are quoted, whether they are converted to upper or
+                // lower case when they are read, and whether identifiers are matched case-sensitively.
+                .parserConfig(SqlParser.configBuilder().setLex(Lex.MYSQL).build())
                 .defaultSchema(schema) // Sets the schema to use by the planner
-                .context(
-                        EMPTY_CONTEXT) // Context can store data within the planner session for access by planner rules
-                .ruleSets(
-                        RuleSets.ofList()) // Rule sets to use in transformation phases
+                .context(EMPTY_CONTEXT) // Context can store data within the planner session for access by planner rules
+                .ruleSets(RuleSets.ofList()) // Rule sets to use in transformation phases
                 .typeSystem(RelDataTypeSystem.DEFAULT)
                 .build();
     }
@@ -78,11 +105,8 @@ public class HuskyQueryPlanner {
     /**
      * run HEP planner
      */
-    protected RelNode runHepPlanner(
-            HepMatchOrder hepMatchOrder,
-            RuleSet ruleSet,
-            RelNode input,
-            RelTraitSet targetTraits) {
+    protected RelNode runHepPlanner(HepMatchOrder hepMatchOrder, RuleSet ruleSet, RelNode input,
+                                    RelTraitSet targetTraits) {
         HepProgramBuilder builder = new HepProgramBuilder();
         builder.addMatchOrder(hepMatchOrder);
 
@@ -99,37 +123,32 @@ public class HuskyQueryPlanner {
         return planner.findBestExp();
     }
 
-    protected RelNode runVolcanoPlanner(
-            RelOptPlanner volcanoPlanner,
-            RuleSet ruleSet,
-            RelNode input,
-            RelTraitSet targetTraits) {
+    protected RelNode runVolcanoPlanner(RelOptPlanner volcanoPlanner, RuleSet ruleSet, RelNode input,
+                                        RelTraitSet targetTraits) {
         Program optProgram = Programs.ofRules(ruleSet);
 
         RelNode output = null;
         try {
-            output = optProgram.run(volcanoPlanner, input, targetTraits,
-                    ImmutableList.of(), ImmutableList.of());
+            output = optProgram.run(volcanoPlanner, input, targetTraits, ImmutableList.of(), ImmutableList.of());
         } catch (RelOptPlanner.CannotPlanException e) {
             throw e;
-//            throw new TableException(
-//                    "Cannot generate a valid execution plan for the given query: \n\n" +
-//                            RelOptUtil.toString(input) + "\n" +
-//                            "This exception indicates that the query uses an unsupported SQL feature.\n" +
-//                            "Please check the documentation for the set of currently supported SQL features.");
+            //            throw new TableException(
+            //                    "Cannot generate a valid execution plan for the given query: \n\n" +
+            //                            RelOptUtil.toString(input) + "\n" +
+            //                            "This exception indicates that the query uses an unsupported SQL feature.\n" +
+            //                            "Please check the documentation for the set of currently supported SQL
+            //                            features.");
         } catch (TableException t) {
             throw new TableException(
-                    "Cannot generate a valid execution plan for the given query: \n\n" +
-                            RelOptUtil.toString(input) + "\n" +
-                            t.getMessage() + "\n" +
-                            "Please check the documentation for the set of currently supported SQL features.");
+                "Cannot generate a valid execution plan for the given query: \n\n" + RelOptUtil.toString(input) + "\n"
+                + t.getMessage() + "\n"
+                + "Please check the documentation for the set of currently supported SQL features.");
         } catch (AssertionError a) {
             // keep original exception stack for caller
             throw a;
         }
         return output;
     }
-
 
     private RelRoot getLogicalPlan(String query) throws ValidationException, RelConversionException {
         SqlNode sqlNode;
@@ -154,8 +173,7 @@ public class HuskyQueryPlanner {
             public void visit(RelNode node, int ordinal, RelNode parent) {
                 if (node instanceof TableScan) {
                     final RelOptCluster cluster = node.getCluster();
-                    final RelOptTable.ToRelContext context =
-                            RelOptUtil.getContext(cluster);
+                    final RelOptTable.ToRelContext context = RelOptUtil.getContext(cluster);
                     final RelNode r = node.getTable().toRel(context);
                     volcanoPlanner.registerClass(r);
                 }
@@ -168,18 +186,15 @@ public class HuskyQueryPlanner {
         System.out.println(RelOptUtil.toString(originalPlan) + "\n");
 
         // 0. convert sub-queries before query decorrelation
-        RelNode convSubQueryPlan = runHepPlanner(
-                HepMatchOrder.BOTTOM_UP, HuskyRuleSets.TABLE_SUBQUERY_RULES, originalPlan, originalPlan.getTraitSet());
+        RelNode convSubQueryPlan = runHepPlanner(HepMatchOrder.BOTTOM_UP, HuskyRuleSets.TABLE_SUBQUERY_RULES,
+                                                 originalPlan, originalPlan.getTraitSet());
 
         System.out.println("\nAfter step 0, convert sub-queries before query decorrelation: ");
         System.out.println(RelOptUtil.toString(convSubQueryPlan) + "\n");
 
         // 0. convert table references
-        RelNode fullRelNode = runHepPlanner(
-                HepMatchOrder.BOTTOM_UP,
-                HuskyRuleSets.TABLE_REF_RULES,
-                convSubQueryPlan,
-                originalPlan.getTraitSet());
+        RelNode fullRelNode = runHepPlanner(HepMatchOrder.BOTTOM_UP, HuskyRuleSets.TABLE_REF_RULES, convSubQueryPlan,
+                                            originalPlan.getTraitSet());
 
         System.out.println("\nAfter step 0, convert table references: ");
         System.out.println(RelOptUtil.toString(fullRelNode) + "\n");

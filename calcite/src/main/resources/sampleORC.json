@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "defaultSchema": "Custom_ORC",
+  "schemas": [
+    {
+      "name": "Custom_ORC",
+      "tables": [
+        {
+          "name": "testORC",
+          "type": "custom",
+          "factory": "husky.sql.calcite.table.ORCTestTableFactory"
+        }
+      ]
+    }
+  ]
+}
+  
